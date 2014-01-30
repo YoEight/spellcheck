@@ -10,5 +10,7 @@
 --
 ----------------------------------------------------------------------------
 
+import Data.Spellcheck.Datum
+
 main :: IO ()
 main = print "Hello Word"
