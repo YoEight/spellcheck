@@ -18,8 +18,11 @@ cabal-version:       >=1.10
 executable spellcheck
   main-is:             Main.hs
   other-modules:       Data.Spellcheck.Datum
+                       Data.Spellcheck.Distance
   -- other-extensions:
-  build-depends:       base >=4.6   && <4.7,
-                       text >= 0.11 && < 1.2
+  build-depends:       base   >=4.6     && <4.7,
+                       text   >=0.11    && <1.2,
+                       vector >=0.10.9  && <0.10.10,
+                       mtl    ==2.1.2
   -- hs-source-dirs:
   default-language:    Haskell2010
