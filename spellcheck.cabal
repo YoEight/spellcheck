@@ -15,16 +15,41 @@ build-type:          Simple
 -- extra-source-files:
 cabal-version:       >=1.10
 
-executable spellcheck
-  main-is:             Main.hs
-  other-modules:       Data.Spellcheck.Datum
-                       Data.Spellcheck.Distance
-  -- other-extensions:
+flag test-properties
+  default: True
+  manual: True
+
+library
+  hs-source-dirs:      lib
   build-depends:       base   >=4.6     && <4.7,
                        text   >=0.11    && <1.2,
                        vector >=0.10.9  && <0.10.10,
                        mtl    ==2.1.2
-
-  ghc-options: -Wall -O2
-  -- hs-source-dirs:
+  exposed-modules:     Data.Spellcheck.Datum
+                       Data.Spellcheck.Distance
   default-language:    Haskell2010
+
+executable spellcheck
+  main-is:             Main.hs
+  build-depends:       base,
+                       spellcheck
+  ghc-options: -Wall -O2
+  default-language:    Haskell2010
+
+test-suite properties
+  type: exitcode-stdio-1.0
+  main-is: Properties.hs
+  ghc-options: -w -threaded -rtsopts -with-rtsopts=-N
+  default-language:    Haskell2010
+  hs-source-dirs:
+    tests
+  if !flag(test-properties)
+    buildable: False
+  else
+    build-depends:
+      base,
+      spellcheck,
+      QuickCheck        >=2.4,
+      test-framework    >=0.6,
+      test-framework    >=0.2,
+      test-framework-th >= 0.2
