@@ -13,7 +13,7 @@
 module Data.Spellcheck.Distance (editDistance) where
 
 import Control.Applicative (Applicative, pure, (*>), (<$))
-import Control.Monad (forM_)
+import Control.Monad (forM_, when)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.State.Strict (StateT, gets, evalStateT, modify, lift)
 import Data.Maybe (fromMaybe)
@@ -22,12 +22,22 @@ import qualified Data.Text                   as T
 import qualified Data.Vector.Unboxed.Mutable as V
 
 -- | Datatype used during edit distance computation
-data EditState s = EditState
-                   { lastSlice    :: !(V.MVector s Int)
-                   , currentSlice :: !(V.MVector s Int)
-                   , editX        :: {-# UNPACK #-} !Int
-                   , editY        :: {-# UNPACK #-} !Int
-                   }
+data EditState s
+    = EditState
+      { lastSlice    :: !(V.MVector s Int)
+      , currentSlice :: !(V.MVector s Int)
+      , editX        :: {-# UNPACK #-} !Int
+      , editY        :: {-# UNPACK #-} !Int
+      }
+    | EditTransState
+      { lastSlice    :: !(V.MVector s Int)
+      , currentSlice :: !(V.MVector s Int)
+      , twoLastSlice :: !(V.MVector s Int)
+      , editX        :: {-# UNPACK #-} !Int
+      , editY        :: {-# UNPACK #-} !Int
+      , lastXChar    :: {-# UNPACK #-} !Char
+      , lastYChar    :: {-# UNPACK #-} !Char
+      }
 
 type SlicesAndX s = (V.MVector s Int, V.MVector s Int, Int)
 
@@ -64,12 +74,8 @@ editDistanceNonTranspose seq1 seq2 = runST action
         lastS <- V.new vector_length
         curS  <- V.new vector_length
         let init_state = EditState lastS curS 1 1
-        init_vector curS
+        editInitVectorTo seq2_length curS
         evalStateT go init_state
-
-    init_vector vec =
-        forM_ [0..vector_length-1] $ \i ->
-            V.write vec i i
 
     go :: StateT (EditState s) (ST s) Int
     go = do
@@ -80,7 +86,7 @@ editDistanceNonTranspose seq1 seq2 = runST action
             editSetY 1
             textFor_ seq2 $ \c_y -> do
                 y    <- gets editY
-                cost <- get_cost lastS curS c_x c_y y
+                cost <- editGetCost y c_x c_y
                 lift $ V.write curS y cost
                 editIncrY
             editIncrX
@@ -88,17 +94,58 @@ editDistanceNonTranspose seq1 seq2 = runST action
         let last_idx = V.length curS - 1
         lift $ V.read curS last_idx
 
-    get_cost lastS curS c_x c_y y
-        | c_x == c_y = lift $ V.read lastS (y-1)
-        | otherwise  = lift $ do
-            subst_val <- V.read lastS (y-1)
-            del_val   <- V.read lastS y
-            ins_val   <- V.read curS (y-1)
-            let min_val = min subst_val $ min del_val ins_val
-            return (1+min_val)
-
 editDistanceTranspose :: T.Text -> T.Text -> Int
-editDistanceTranspose = error "not implemented yet"
+editDistanceTranspose seq1 seq2 = runST action
+  where
+    seq2_length   = T.length seq2
+    vector_length = seq2_length + 1
+    c_x0          = T.head seq1
+    c_y0          = T.head seq2
+
+    action = do
+        lastS    <- V.new vector_length
+        curS     <- V.new vector_length
+        twolastS <- V.new vector_length
+        let init_state = EditTransState lastS curS twolastS 1 1 '?' '?'
+        editInitVectorTo seq2_length lastS
+        V.write curS 0 1
+        evalStateT go init_state
+
+    go :: StateT (EditState s) (ST s) Int
+    go = do
+        textFor_ seq2 $ \c_y -> do
+            y    <- gets editY
+            curS <- gets currentSlice
+            cost <- editGetCost y c_x0 c_y
+            lift $ V.write curS y cost
+            editIncrY
+        editSetX 2
+        editSetLastXChar c_x0
+        textFor_ (T.tail seq1) $ \c_x -> do
+            editSwitchTransSlices
+            x    <- gets editX
+            curS <- gets currentSlice
+            lift $ V.write curS 0 x
+            cost <- editGetCost 1 c_x c_y0
+            lift $ V.write curS 1 cost
+            editSetY 2
+            editSetLastYChar c_y0
+            textFor_ (T.tail seq2) $ \c_y -> do
+                y    <- gets editY
+                m_x  <- gets lastXChar
+                m_y  <- gets lastYChar
+                cost <- editGetCost y c_x c_y
+                lift $ V.write curS y cost
+                when (c_x == m_y && c_y == m_x) $ do
+                    last2S    <- gets twoLastSlice
+                    last2_val <- lift $ V.read last2S (y-2)
+                    lift $ V.write curS y (min cost (last2_val+1))
+                editSetLastYChar c_y
+                editIncrY
+            editSetLastXChar c_x
+            editIncrX
+        curS <- gets currentSlice
+        lift $ V.read curS seq2_length
 
 textFor_ :: Applicative m => T.Text -> (Char -> m a) -> m ()
 textFor_ txt k
@@ -108,8 +155,19 @@ textFor_ txt k
 editSwitchSlices :: Monad m => StateT (EditState s) m ()
 editSwitchSlices = modify go
   where
-    go s@EditState{ lastSlice=l, currentSlice=c } =
+    go s =
+        let l = lastSlice s
+            c = currentSlice s in
         s{ lastSlice=c, currentSlice=l }
+
+editSwitchTransSlices :: Monad m => StateT (EditState s) m ()
+editSwitchTransSlices = modify go
+  where
+    go s =
+        let l  = lastSlice s
+            l2 = twoLastSlice s
+            c  = currentSlice s in
+        s{ lastSlice=c, twoLastSlice=l, currentSlice=l2 }
 
 editGetSlicesAndX :: Monad m => StateT (EditState s) m (SlicesAndX s)
 editGetSlicesAndX = gets go
@@ -123,14 +181,47 @@ editGetSlicesAndX = gets go
 editIncrX :: Monad m => StateT (EditState s) m ()
 editIncrX = modify go
   where
-    go s@EditState{ editX=x } = s{ editX=x+1 }
+    go s = s{ editX=editX s+1 }
 
 editIncrY :: Monad m => StateT (EditState s) m ()
 editIncrY = modify go
   where
-    go s@EditState{ editY=y } = s{ editY=y+1 }
+    go s = s{ editY=editY s+1 }
 
 editSetY :: Monad m => Int -> StateT (EditState s) m ()
 editSetY y = modify go
   where
     go s = s{ editY=y }
+
+editSetX :: Monad m => Int -> StateT (EditState s) m ()
+editSetX x = modify go
+  where
+    go s = s{ editX=x }
+
+editSetLastXChar :: Monad m => Char -> StateT (EditState s) m ()
+editSetLastXChar c = modify go
+  where
+    go s = s{ lastXChar=c }
+
+editSetLastYChar :: Monad m => Char -> StateT (EditState s) m ()
+editSetLastYChar c = modify go
+  where
+    go s = s{ lastYChar=c }
+
+editInitVectorTo :: Int -> V.MVector s Int -> ST s ()
+editInitVectorTo max vec =
+    forM_ [0..max] $ \i ->
+        V.write vec i i
+
+editGetCost :: Int -> Char -> Char -> StateT (EditState s) (ST s) Int
+editGetCost i c_x c_y = do
+    lastS <- gets lastSlice
+    curS  <- gets currentSlice
+    if c_x == c_y
+        then lift $ V.read lastS (i-1)
+        else lift $ do
+        subst_val <- V.read lastS (i-1)
+        del_val   <- V.read lastS i
+        ins_val   <- V.read curS (i-1)
+        let min_val = min subst_val $ min del_val ins_val
+        return (1+min_val)
