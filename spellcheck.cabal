@@ -28,6 +28,7 @@ library
                        mtl    ==2.1.2
   exposed-modules:     Data.Spellcheck.Datum
                        Data.Spellcheck.Distance
+                       Data.Spellcheck.Sentence
   default-language:    Haskell2010
 
 executable spellcheck
