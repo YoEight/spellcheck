@@ -39,8 +39,6 @@ data EditState s
       , lastYChar    :: {-# UNPACK #-} !Char
       }
 
-type SlicesAndX s = (V.MVector s Int, V.MVector s Int, Int)
-
 -- | Returns the edit distance between the character sequences with
 --   or without transpositions as specified.  This distance is symmetric
 --   It's a Levenshtein distance, implemented by an optimized Wagner–Fischer
@@ -81,7 +79,8 @@ editDistanceNonTranspose seq1 seq2 = runST action
     go = do
         textFor_ seq1 $ \c_x -> do
             editSwitchSlices
-            (lastS, curS, x) <- editGetSlicesAndX
+            curS <- gets currentSlice
+            x    <- gets editX
             lift $ V.write curS 0 x
             editSetY 1
             textFor_ seq2 $ \c_y -> do
@@ -123,23 +122,23 @@ editDistanceTranspose seq1 seq2 = runST action
         editSetLastXChar c_x0
         textFor_ (T.tail seq1) $ \c_x -> do
             editSwitchTransSlices
-            x    <- gets editX
-            curS <- gets currentSlice
+            x      <- gets editX
+            curS   <- gets currentSlice
             lift $ V.write curS 0 x
-            cost <- editGetCost 1 c_x c_y0
-            lift $ V.write curS 1 cost
+            cost_x <- editGetCost 1 c_x c_y0
+            lift $ V.write curS 1 cost_x
             editSetY 2
             editSetLastYChar c_y0
             textFor_ (T.tail seq2) $ \c_y -> do
-                y    <- gets editY
-                m_x  <- gets lastXChar
-                m_y  <- gets lastYChar
-                cost <- editGetCost y c_x c_y
-                lift $ V.write curS y cost
+                y      <- gets editY
+                m_x    <- gets lastXChar
+                m_y    <- gets lastYChar
+                cost_y <- editGetCost y c_x c_y
+                lift $ V.write curS y cost_y
                 when (c_x == m_y && c_y == m_x) $ do
                     last2S    <- gets twoLastSlice
                     last2_val <- lift $ V.read last2S (y-2)
-                    lift $ V.write curS y (min cost (last2_val+1))
+                    lift $ V.write curS y (min cost_y (last2_val+1))
                 editSetLastYChar c_y
                 editIncrY
             editSetLastXChar c_x
@@ -168,15 +167,6 @@ editSwitchTransSlices = modify go
             l2 = twoLastSlice s
             c  = currentSlice s in
         s{ lastSlice=c, twoLastSlice=l, currentSlice=l2 }
-
-editGetSlicesAndX :: Monad m => StateT (EditState s) m (SlicesAndX s)
-editGetSlicesAndX = gets go
-  where
-    go s =
-        let lastS = lastSlice s
-            curS  = currentSlice s
-            x     = editX s in
-        (lastS, curS, x)
 
 editIncrX :: Monad m => StateT (EditState s) m ()
 editIncrX = modify go
@@ -209,8 +199,8 @@ editSetLastYChar c = modify go
     go s = s{ lastYChar=c }
 
 editInitVectorTo :: Int -> V.MVector s Int -> ST s ()
-editInitVectorTo max vec =
-    forM_ [0..max] $ \i ->
+editInitVectorTo rmax vec =
+    forM_ [0..rmax] $ \i ->
         V.write vec i i
 
 editGetCost :: Int -> Char -> Char -> StateT (EditState s) (ST s) Int
