@@ -48,9 +48,9 @@ editDistance :: Bool   -- allow transposition ?
              -> T.Text
              -> Int
 editDistance allow seq1 seq2
+    | T.length seq1 < T.length seq2 = editDistance allow seq2 seq1
     | T.length seq2 == 0            = T.length seq1
     | T.length seq2 == 1            = editDistanceSmall seq1 seq2
-    | T.length seq1 < T.length seq2 = editDistance allow seq2 seq1
     | allow                         = editDistanceTranspose seq1 seq2
     | otherwise                     = editDistanceNonTranspose seq1 seq2
 

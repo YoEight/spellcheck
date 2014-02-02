@@ -48,8 +48,9 @@ test-suite properties
   else
     build-depends:
       base,
+      text,
       spellcheck,
-      QuickCheck        >=2.4,
-      test-framework    >=0.6,
-      test-framework    >=0.2,
-      test-framework-th >= 0.2
+      QuickCheck                 >=2.4,
+      test-framework             >=0.6,
+      test-framework-quickcheck2 >=0.2,
+      test-framework-th          >=0.2
