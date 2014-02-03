@@ -10,8 +10,15 @@
 --
 ----------------------------------------------------------------------------
 
-module Data.Spellcheck.Sentence (Sentence) where
+module Data.Spellcheck.Sentence
+       ( Sentence
+       , SentenceToken(..)
+       ) where
 
 import Data.Spellcheck.Datum (Datum)
 
-type Sentence = [Datum]
+data SentenceToken = SStart
+                   | SDatum !Datum
+                   | SEnd deriving Show
+
+type Sentence = [SentenceToken]
