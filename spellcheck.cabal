@@ -28,12 +28,15 @@ library
                        mtl        ==2.1.2,
                        conduit    >=1.0     && <1.1,
                        resourcet  >=0.4.3   && <0.5,
-                       attoparsec >=0.11.1  && <0.11.2
+                       attoparsec >=0.11.1  && <0.11.2,
+                       containers == 0.5.0.0
 
   exposed-modules:     Data.Spellcheck.Datum
                        Data.Spellcheck.Distance
                        Data.Spellcheck.HolbrookCorpus
                        Data.Spellcheck.Sentence
+                       Data.Spellcheck.UniformLanguageModel
+
   default-language:    Haskell2010
 
 executable spellcheck
