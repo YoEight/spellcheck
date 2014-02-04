@@ -21,6 +21,7 @@ import Test.Framework.TH
 import Test.HUnit (assertEqual)
 
 import Data.Spellcheck.Distance
+import Data.Spellcheck.HolbrookCorpus
 
 testDataNT :: [(Text, Text, Int)]
 testDataNT =
@@ -36,6 +37,10 @@ testDataT =
 case_dist_non_trans = runTestCases False testDataNT
 
 case_dist_trans = runTestCases True testDataT
+
+case_load_corpus = do
+    c <- loadHolbrook "data/holbrook-tagged-dev.dat"
+    c `seq` return ()
 
 runTestCases b xs =
     forM_ xs $ \(s1,s2,exp) ->
