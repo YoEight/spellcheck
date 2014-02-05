@@ -12,7 +12,12 @@
 --
 ----------------------------------------------------------------------------
 
-module Data.Spellcheck.HolbrookCorpus (loadHolbrook) where
+module Data.Spellcheck.HolbrookCorpus
+       ( HolbrookCorpus
+       , corpusLoad
+       , mkCorpus
+       , loadHolbrook
+       ) where
 
 import Prelude hiding (lines, takeWhile)
 import Control.Exception.Base
@@ -32,9 +37,17 @@ import qualified Data.Text as T
 import Data.Spellcheck.Datum
 import Data.Spellcheck.Sentence
 
+newtype HolbrookCorpus = HC (IO [Sentence])
+
 data ParseException = PE !String deriving (Show, Typeable)
 
 instance Exception ParseException
+
+mkCorpus :: FilePath -> HolbrookCorpus
+mkCorpus filepath = HC (loadHolbrook filepath)
+
+corpusLoad :: HolbrookCorpus -> IO [Sentence]
+corpusLoad (HC run) = run
 
 -- | Load HolbrookCorpus format corpus into list of Sentence
 loadHolbrook :: FilePath -> IO [Sentence]
