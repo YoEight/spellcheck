@@ -31,10 +31,12 @@ library
                        attoparsec >=0.11.1  && <0.11.2,
                        containers == 0.5.0.0
 
-  exposed-modules:     Data.Spellcheck.Datum
+  exposed-modules:     Data.Spellcheck
+                       Data.Spellcheck.Datum
                        Data.Spellcheck.Distance
                        Data.Spellcheck.HolbrookCorpus
                        Data.Spellcheck.Sentence
+                       Data.Spellcheck.SpellingResult
                        Data.Spellcheck.UniformLanguageModel
 
   default-language:    Haskell2010

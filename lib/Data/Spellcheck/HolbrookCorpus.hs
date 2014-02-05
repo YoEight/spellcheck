@@ -22,6 +22,7 @@ module Data.Spellcheck.HolbrookCorpus
 import Prelude hiding (lines, takeWhile)
 import Control.Exception.Base
 import Data.Char (isAlphaNum, isPunctuation, isSpace)
+import Data.IORef
 import Data.Maybe (fromMaybe)
 import Data.Typeable
 
@@ -43,11 +44,25 @@ data ParseException = PE !String deriving (Show, Typeable)
 
 instance Exception ParseException
 
-mkCorpus :: FilePath -> HolbrookCorpus
-mkCorpus filepath = HC (loadHolbrook filepath)
+mkCorpus :: FilePath -> IO HolbrookCorpus
+mkCorpus filepath = fmap go (newIORef Nothing)
+  where
+    go ref = HC $ do
+        v <- readIORef ref
+        case v of
+            Just xs -> return xs
+            _       -> do
+                xs <- loadHolbrook filepath
+                writeIORef ref (Just xs)
+                return xs
 
 corpusLoad :: HolbrookCorpus -> IO [Sentence]
 corpusLoad (HC run) = run
+
+corpusTestCases :: HolbrookCorpus -> IO [Sentence]
+corpusTestCases = fmap go . corpusLoad
+  where
+    go = filter sentenceHasError
 
 -- | Load HolbrookCorpus format corpus into list of Sentence
 loadHolbrook :: FilePath -> IO [Sentence]
