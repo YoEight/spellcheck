@@ -20,6 +20,7 @@ import Test.Framework.Providers.HUnit
 import Test.Framework.TH
 import Test.HUnit (assertEqual)
 
+import Data.Spellcheck.EditModel
 import Data.Spellcheck.Distance
 import Data.Spellcheck.HolbrookCorpus
 
@@ -40,6 +41,10 @@ case_dist_trans = runTestCases True testDataT
 
 case_load_corpus = do
     c <- loadHolbrook "data/holbrook-tagged-dev.dat"
+    c `seq` return ()
+
+case_load_edits = do
+    c <- loadEdits
     c `seq` return ()
 
 runTestCases b xs =

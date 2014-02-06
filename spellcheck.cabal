@@ -34,10 +34,13 @@ library
   exposed-modules:     Data.Spellcheck
                        Data.Spellcheck.Datum
                        Data.Spellcheck.Distance
+                       Data.Spellcheck.EditModel
                        Data.Spellcheck.HolbrookCorpus
+                       Data.Spellcheck.LanguageModel
                        Data.Spellcheck.Sentence
                        Data.Spellcheck.SpellingResult
                        Data.Spellcheck.UniformLanguageModel
+                       Data.Spellcheck.Utils
 
   default-language:    Haskell2010
 

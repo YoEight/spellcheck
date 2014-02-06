@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverloadedStrings  #-}
+{-# LANGUAGE OverloadedStrings #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Data.Spellcheck.HolbrookCorpus
@@ -20,11 +19,9 @@ module Data.Spellcheck.HolbrookCorpus
        ) where
 
 import Prelude hiding (lines, takeWhile)
-import Control.Exception.Base
 import Data.Char (isAlphaNum, isPunctuation, isSpace)
 import Data.IORef
 import Data.Maybe (fromMaybe)
-import Data.Typeable
 
 import           Control.Applicative ((<*>), (<$>))
 import           Control.Monad (mzero, mplus)
@@ -37,12 +34,9 @@ import qualified Data.Text as T
 
 import Data.Spellcheck.Datum
 import Data.Spellcheck.Sentence
+import Data.Spellcheck.Utils
 
 newtype HolbrookCorpus = HC (IO [Sentence])
-
-data ParseException = PE !String deriving (Show, Typeable)
-
-instance Exception ParseException
 
 mkCorpus :: FilePath -> IO HolbrookCorpus
 mkCorpus filepath = fmap go (newIORef Nothing)
@@ -55,6 +49,9 @@ mkCorpus filepath = fmap go (newIORef Nothing)
                 xs <- loadHolbrook filepath
                 writeIORef ref (Just xs)
                 return xs
+
+trainCorpus :: IO HolbrookCorpus
+trainCorpus = mkCorpus "data/holbrook-tagged-train.dat"
 
 corpusLoad :: HolbrookCorpus -> IO [Sentence]
 corpusLoad (HC run) = run
