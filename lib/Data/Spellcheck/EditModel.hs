@@ -9,11 +9,17 @@
 -- Portability :  non-portable
 --
 ----------------------------------------------------------------------------
-module Data.Spellcheck.EditModel where
+module Data.Spellcheck.EditModel
+       ( EditModel(..)
+       , mkEditModel
+       , loadEdits
+       , editCount
+       )where
 
 import           Prelude hiding (lines, takeWhile)
 import           Data.Char
 import           Data.Foldable (foldMap)
+import           Data.Maybe
 import qualified Data.Map as M
 import qualified Data.Set as S
 
@@ -54,6 +60,14 @@ loadEdits = runResourceT processEdit
     source = sourceFile "data/count_1edit.txt"
 
     processEdit = source $= toText =$= lines $$ registerEdits M.empty
+
+-- | Returns how many times substring s1 is edited as s2.
+--   For example editCount(e,i) counts how many times the correct 'i' is
+--   misspelled as an 'e'
+editCount :: EditModel -> T.Text -> T.Text -> Int
+editCount em s1 s2 = fromMaybe 0 (M.lookup key $ emEditCount em)
+  where
+    key = T.append s1 $ T.append (T.pack "|") s2
 
 registerEdits :: M.Map T.Text Int
               -> Sink T.Text (ResourceT IO) (M.Map T.Text Int)
