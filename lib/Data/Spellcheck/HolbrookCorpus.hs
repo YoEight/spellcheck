@@ -16,6 +16,7 @@ module Data.Spellcheck.HolbrookCorpus
        , corpusLoad
        , mkCorpus
        , loadHolbrook
+       , trainCorpus
        ) where
 
 import Prelude hiding (lines, takeWhile)
