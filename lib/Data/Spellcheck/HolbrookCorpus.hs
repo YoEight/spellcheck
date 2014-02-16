@@ -17,6 +17,7 @@ module Data.Spellcheck.HolbrookCorpus
        , mkCorpus
        , loadHolbrook
        , trainCorpus
+       , devCorpus
        , corpusTestCases
        ) where
 
@@ -52,8 +53,9 @@ mkCorpus filepath = fmap go (newIORef Nothing)
                 writeIORef ref (Just xs)
                 return xs
 
-trainCorpus :: IO HolbrookCorpus
+trainCorpus, devCorpus :: IO HolbrookCorpus
 trainCorpus = mkCorpus "data/holbrook-tagged-train.dat"
+devCorpus   = mkCorpus "data/holbrook-tagged-dev.dat"
 
 corpusLoad :: HolbrookCorpus -> IO [Sentence]
 corpusLoad (HC run) = run

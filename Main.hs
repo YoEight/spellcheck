@@ -9,25 +9,18 @@
 -- Portability :  non-portable
 --
 ----------------------------------------------------------------------------
-
-import Data.Char
-import Data.String
-import System.Environment
-
-import qualified Data.Spellcheck.UniformLanguageModel as U
+import Data.Spellcheck
+import Data.Spellcheck.HolbrookCorpus
+import Data.Spellcheck.LanguageModel
+import Data.Spellcheck.SpellingResult
+import Data.Spellcheck.UniformLanguageModel
 
 main :: IO ()
-main = undefined
-    -- (opt, ws) <- parseInput
-    -- case opt of
-    --     "-uni" -> do
-    --         ulm <- U.train "data/holbrook-tagged-train.dat"
-    --         let score = U.score ulm (fmap (fromString . fmap toLower) ws)
-    --         print score
-    --     _ -> ioError $ userError ("Unsupported option: " ++ opt)
-
-parseInput :: IO (String, [String])
-parseInput = getArgs >>= go
-  where
-    go (opt:ws) = return (opt, ws)
-    go _        = ioError $ userError "Bad use"
+main = do
+    tc <- trainCorpus
+    dc <- devCorpus
+    print "-- Uniform Language Model --"
+    um  <- train tc :: IO UniformLanguageModel
+    usc <- mkSpellcheckWithCorpus um tc
+    res <- evaluate usc dc
+    print $ spellingAccuracy res
