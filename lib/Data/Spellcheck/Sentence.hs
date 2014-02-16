@@ -14,7 +14,14 @@ module Data.Spellcheck.Sentence
        ( Sentence
        , SentenceToken(..)
        , sentenceHasError
+       , sentenceIsCorrection
+       , sentenceGetCorrect
+       , sentenceGetWrong
        ) where
+
+import Data.Maybe (fromMaybe)
+
+import Data.Text (Text)
 
 import Data.Spellcheck.Datum
 
@@ -24,9 +31,30 @@ data SentenceToken = SStart
 
 type Sentence = [SentenceToken]
 
+sentenceDatums :: Sentence -> [Datum]
+sentenceDatums xs = go =<< xs
+  where
+    go (SDatum d) = [d]
+    go _          = []
+
 sentenceHasError :: Sentence -> Bool
-sentenceHasError =
-    any $ \t ->
-        case t of
-            SDatum d -> datumHasError d && datumValid d
-            _        -> True
+sentenceHasError = go . sentenceDatums
+  where
+    go = any $ \d ->  datumHasError d && datumValid d
+
+sentenceIsCorrection :: Sentence -> [Text] -> Bool
+sentenceIsCorrection stc cand
+    | length stc /= length cand = False
+    | otherwise =
+        let xs = zip (sentenceGetCorrect stc) cand in
+        all (uncurry (==)) xs
+
+-- | Returns the corrected sentence
+sentenceGetCorrect :: Sentence -> [Text]
+sentenceGetCorrect = fmap datumWord . sentenceDatums
+
+-- | Returns the sentence as written, flattened into list of Text
+sentenceGetWrong :: Sentence -> [Text]
+sentenceGetWrong = fmap go . sentenceDatums
+  where
+    go d = fromMaybe (datumWord d) (datumError d)

@@ -17,4 +17,6 @@ data SpellingResult
       }
 
 spellingAccuracy :: SpellingResult -> Double
-spellingAccuracy (SpellingResult c t) = fromIntegral c / fromIntegral t
+spellingAccuracy (SpellingResult c t)
+    | t == 0    = 0
+    | otherwise = fromIntegral c / fromIntegral t

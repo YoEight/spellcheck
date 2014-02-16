@@ -13,8 +13,9 @@ module Data.Spellcheck where
 
 import           Control.Monad (forM_, when)
 import           Control.Monad.ST (ST, runST)
-import           Data.Foldable (traverse_)
+import           Data.Foldable (foldMap, traverse_)
 import qualified Data.Map.Strict as M
+import           Data.Monoid (Monoid(..))
 
 import           Control.Monad.State.Strict
 import           Data.Text(Text)
@@ -24,10 +25,23 @@ import qualified Data.Vector.Mutable as VM
 import Data.Spellcheck.EditModel
 import Data.Spellcheck.HolbrookCorpus
 import Data.Spellcheck.LanguageModel
+import Data.Spellcheck.Sentence
 import Data.Spellcheck.SpellingResult
 
 data Spellcheck m where
     Spellcheck :: LanguageModel m => m -> EditModel -> Spellcheck m
+
+data Evaluate
+    = Evaluate
+      { evalTotal   :: {-# UNPACK #-} !Int
+      , evalCorrect :: {-# UNPACK #-} !Int
+      }
+
+instance Monoid Evaluate where
+    mempty = Evaluate 0 0
+
+    mappend (Evaluate x1 y1) (Evaluate x2 y2) =
+        Evaluate (x1+x2) (y1+y2)
 
 mkSpellcheck :: LanguageModel m => m -> IO (Spellcheck m)
 mkSpellcheck m = do
@@ -42,7 +56,22 @@ mkSpellcheckWithCorpus :: LanguageModel m
 mkSpellcheckWithCorpus m corpus = fmap (Spellcheck m) (mkEditModel corpus)
 
 evaluate :: Spellcheck m -> HolbrookCorpus -> IO SpellingResult
-evaluate = undefined
+evaluate sc = fmap (eval . foldMap go) . corpusTestCases
+  where
+    one  = Evaluate 1 1
+    zero = Evaluate 1 0
+    none = Evaluate 0 0
+
+    eval (Evaluate total correct) =
+        SpellingResult correct total
+
+    go []  = none
+    go stc =
+        let wrongSentence = sentenceGetWrong stc
+            hypothesis    = correctSentence sc wrongSentence in
+        if sentenceIsCorrection stc hypothesis
+        then one
+        else zero
 
 data CorrectState
     = CS
