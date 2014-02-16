@@ -45,7 +45,7 @@ data EditModel
       , emVocabulary :: !(S.Set T.Text)
       }
 
-type Probabilities = T.Text -> Double
+type Probabilities = M.Map T.Text Double
 
 mkEditModel :: HolbrookCorpus -> IO EditModel
 mkEditModel corpus = do
@@ -80,7 +80,7 @@ alphabet = ['a'..'z']
 -- | Computes p(x| word) for x in the dictionary within edit distance one of
 --   word.
 editProbabilities :: EditModel -> T.Text -> Probabilities
-editProbabilities em word w = fromMaybe 0 (M.lookup w probs)
+editProbabilities em word = probs
   where
     w_inits = T.inits word
     w_tails = T.tails word

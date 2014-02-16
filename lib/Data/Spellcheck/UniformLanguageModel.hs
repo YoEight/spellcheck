@@ -21,7 +21,8 @@ import           Data.Foldable (foldMap)
 import           Data.Monoid
 import qualified Data.Set as S
 
-import qualified Data.Text as T
+import qualified Data.Text   as T
+import qualified Data.Vector as V
 
 import Data.Spellcheck.Datum
 import Data.Spellcheck.HolbrookCorpus
@@ -44,4 +45,4 @@ instance LanguageModel UniformLanguageModel where
         go _          = ULM S.empty
 
     score (ULM s) stc =
-        (fromIntegral $ length stc) * log (fromIntegral $ S.size s)
+        (fromIntegral $ V.length stc) * log (fromIntegral $ S.size s)

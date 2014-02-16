@@ -12,7 +12,10 @@
 ----------------------------------------------------------------------------
 module Data.Spellcheck.LanguageModel where
 
+import Control.Monad.ST (ST)
+
 import Data.Text (Text)
+import Data.Vector (Vector)
 
 import Data.Spellcheck.HolbrookCorpus
 
@@ -21,4 +24,4 @@ class LanguageModel a where
 
     -- | Language model score (probality) of given sentence
     --   usually a log-probability
-    score :: a -> [Text] -> Double
+    score :: a -> Vector Text -> Double
